@@ -42,12 +42,16 @@ st.markdown (hide_menu_style, unsafe_allow_html=True)
 #########################################################################################################
 # province selector
 st.sidebar.markdown ('### Localización de la instalación ')
-province_list = ['Madrid', 'Cuenca', 'Guadalajara', 'Toledo', 'Ciudad Real', 'Albacete', 'Huelva', 'Cádiz', 'Málaga',
-                 'Granada', 'Almería', 'Jaén', 'Córdoba', 'Sevilla']
-province_list = sorted (province_list)
+province_list = ['Albacete', 'Álava', 'Alicante', 'Almería', 'Asturias','Ávila', 'Badajoz', 'Barcelona', 'Burgos', 'Cantabria',
+                 'Castellón', 'Ceuta', 'Ciudad Real','Cuenca', 'Cáceres', 'Cádiz', 'Córdoba', 'Girona',
+                 'Gran Canaria', 'Granada', 'Guadalajara', 'Guipuzcoa', 'Huelva', 'Huesca', 'Jaén', 'La Coruña', 'La Rioja', 'León',
+                 'Lleida', 'Lugo', 'Madrid', 'Mallorca', 'Melilla', 'Murcia', 'Málaga', 'Navarra', 'Orense', 'Palencia', 'Pontevedra',
+                 'Salamanca', 'Segovia', 'Sevilla', 'Soria', 'Tarragona', 'Tenerife', 'Teruel', 'Toledo', 'Valencia', 'Valladolid',
+                 'Vizcaya', 'Zamora', 'Zaragoza']
+
 province = st.sidebar.selectbox ('Provincia', options=province_list)
+province = unidecode.unidecode (province)   # remove accents
 province = province.lower ().replace (" ", "")  # remove capitals and spaces
-province = unidecode.unidecode (province)  # remove accents
 irradiation_csv_toread = province + '_total_pv_power_output_wh.csv'
 
 # installation parameters and other useful information

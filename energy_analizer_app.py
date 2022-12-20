@@ -10,6 +10,9 @@ import plotly.figure_factory as ff
 import plotly.express as px
 import plotly.graph_objects as go
 
+import clean_comercializadora_regulada
+from clean_comercializadora_regulada import CleanCR
+
 from datetime import datetime, timedelta
 
 #########################################################################################################
@@ -42,27 +45,35 @@ st.markdown (hide_menu_style, unsafe_allow_html=True)
 #########################################################################################################
 # province selector
 st.sidebar.markdown ('### Localización de la instalación ')
-province_list = ['Madrid', 'Cuenca', 'Guadalajara', 'Toledo', 'Ciudad Real', 'Albacete', 'Huelva', 'Cádiz', 'Málaga',
-                 'Granada', 'Almería', 'Jaén', 'Córdoba', 'Sevilla']
-province_list = sorted (province_list)
+province_list = ['Albacete', 'Álava', 'Alicante', 'Almería', 'Asturias', 'Ávila', 'Badajoz', 'Barcelona', 'Burgos',
+                 'Cantabria',
+                 'Castellón', 'Ceuta', 'Ciudad Real', 'Cuenca', 'Cáceres', 'Cádiz', 'Córdoba', 'Girona',
+                 'Gran Canaria', 'Granada', 'Guadalajara', 'Guipuzcoa', 'Huelva', 'Huesca', 'Jaén', 'La Coruña',
+                 'La Rioja', 'León',
+                 'Lleida', 'Lugo', 'Madrid', 'Mallorca', 'Melilla', 'Murcia', 'Málaga', 'Navarra', 'Orense', 'Palencia',
+                 'Pontevedra',
+                 'Salamanca', 'Segovia', 'Sevilla', 'Soria', 'Tarragona', 'Tenerife', 'Teruel', 'Toledo', 'Valencia',
+                 'Valladolid',
+                 'Vizcaya', 'Zamora', 'Zaragoza']
+
 province = st.sidebar.selectbox ('Provincia', options=province_list)
-province = province.lower ().replace (" ", "")  # remove capitals and spaces
 province = unidecode.unidecode (province)  # remove accents
+province = province.lower ().replace (" ", "")  # remove capitals and spaces
 irradiation_csv_toread = province + '_total_pv_power_output_wh.csv'
 
 # installation parameters and other useful information
 st.sidebar.markdown ('### Parámetros de instalación ')
 installed_power = st.sidebar.slider ('Potencia nominal de los paneles en Kw', min_value=0.3, max_value=20.0,
-                                     step=0.1, value=5.0)
-battery_cap = st.sidebar.slider ('Capacidad de tus baterías en Kwh', min_value=1.0, max_value=20.0, step=0.1, value=5.0)
-
+                             step=0.1, value=5.0)
+battery_cap = st.sidebar.slider ('Capacidad de tus baterías en Kwh',
+                             min_value=1.0, max_value=20.0, step=0.1, value=5.0)
 st.sidebar.markdown ('### Parámetros opcionales ')
 increase_demand = st.sidebar.slider (
-    '¿Cuánto piensas incrementar tu consumo normal? 1 lo dejas igual, 1.2 aumenta un 20%...',
-    min_value=1.0, max_value=2.0, step=0.01, value=1.0)
+                            '¿Cuánto piensas incrementar tu consumo normal? 1 lo dejas igual, 1.2 aumenta un 20%...',
+                             min_value=1.0, max_value=2.0, step=0.01, value=1.0)
 percent_buy = st.sidebar.slider ('Porcentaje sobre el precio de venta de la compañía al que te compran la energía.',
-                                 min_value=5.0,
-                                 max_value=100.0, step=1.0, value=20.0) / 100
+                             min_value=5.0,
+                             max_value=100.0, step=1.0, value=20.0) / 100
 
 #########################################################################################################
 #################################  User inputs (xls files) ##############################################
@@ -79,10 +90,6 @@ if len (uploaded_files) != 0:
     filenames = []
     for file in uploaded_files:
         filenames.append (file.name)
-        # this 2 next lines of code will store the files in disk in case you need it
-        # other way they will be kept in buffer and deleted when refresh or exit the app
-        # with open (os.path.join ('datos', file.name), 'wb') as f:
-        # f.write (file.getbuffer ())
     st.write ('Has subido un total de ' + str (len (filenames)) + ' archivos: \n')
 else:
     st.stop ()
@@ -91,14 +98,6 @@ else:
 ##########################################
 # Clean xls and merge files
 ##########################################
-
-# function to clean the xls files headers from logos, customer info ,etc.
-# removing rows with a nan is enough for this xls files
-def clean_xls (xls):
-    df = pd.read_excel (xls)
-    df = df.dropna (axis=0, how='any')
-    return df
-
 
 # development function to get info from a dataframe, as streamlit doesnt show it
 def show_df_info (df):
@@ -109,43 +108,17 @@ def show_df_info (df):
     st.text (s)
 
 
-# with merge and outer we merge the individual dataframes
-# outer removes repeated rows, as the second row with names and in case the user uploaded repeated files and rows
-
 st.write ('### B) Procesa los ficheros subidos ')
 process = st.checkbox ('Procesar')
 if process:
 
-    df_clean = clean_xls (uploaded_files [0])
-    for i in range (1, len (uploaded_files)):
-        last_df = clean_xls (uploaded_files [i])
-        df_clean = pd.merge (df_clean, last_df, how='outer')
-    names = df_clean.iloc [0, :].values.tolist ()  # get names of columns from the first row
-    df_clean.columns = names  # assign names to columns
-    df_clean = df_clean.iloc [1:, :]  # remove the first row where the old names are
-
-    # change columns dtypes
-    df_clean [['Hora Desde', 'Hora Hasta']] = df_clean [['Hora Desde', 'Hora Hasta']].astype (int)
-    df_clean [['Tipo consumo']] = df_clean [['Tipo consumo']].astype (str)
-    df_clean [['Consumo (kWh)', 'Precio horario de energía (€/kWh)', 'Importe horario de energía (€)']] = df_clean [
-        ['Consumo (kWh)', 'Precio horario de energía (€/kWh)', 'Importe horario de energía (€)']].astype (float)
-
-    # change date str to datetime and then a new column with datetime including the hour to get better graphs.
-    df_clean ['Fecha'] = pd.to_datetime (df_clean ['Fecha'], format='%d/%m/%Y')
-    df_clean ['Hour_DT'] = pd.to_timedelta (df_clean ['Hora Desde'], 'h')
-    df_clean ['Fecha con hora'] = df_clean ['Fecha'] + df_clean ['Hour_DT']
-    df_clean.drop (['Hour_DT'], inplace=True,
-                   axis=1)  # there is a bug in streamlit with timedeltas, so need to drop column
-    df_clean ['Mes'] = df_clean ['Fecha'].dt.month
-
-    # screen print and save a file
+    df_clean = clean_comercializadora_regulada.CleanCR (uploaded_files)
     # show_df_info (df_clean)  # for developing control
     st.write ('Tabla de consumos agregada, estos son los datos que has subido.')
     df_clean = df_clean.sort_values (by='Fecha con hora')
     st.write (df_clean)
-    with pd.ExcelWriter (os.path.join ('datos', 'merged_and_clean.xls')) as writer:
-        df_clean.to_excel (writer)
-
+    # with pd.ExcelWriter (os.path.join ('datos', 'merged_and_clean.xls')) as writer:
+    # df_clean.to_excel (writer)
 else:
     st.stop ()
 
@@ -157,7 +130,7 @@ df_irr = pd.read_csv (os.path.join ('solar_power', irradiation_csv_toread))
 st.write ('### C) Tabla de potencia solar ')
 st.write ('Potencia de salida en Wh de panel teórico de 1 Kw a 34º de inclinación para la provincia elegida.')
 st.write ('Valores de https://globalsolaratlas.info.')
-st.write ('Estos valores no tienen corrección horaria CET')
+st.write ('Estos valores no tienen corrección horaria CET, los usando en cáculos sí están corregidos')
 st.write (df_irr)
 
 
@@ -245,7 +218,7 @@ net_sell_buy_bat = sum (list_net_bat)
 # show_df_info (df_clean)
 st.write ('### D) Tabla con el cálculo de valores ')
 st.markdown ("""
-Tabla de valores utilizados para los cáculos. 
+Tabla de valores utilizados para la analítica. 
 * **irr:** Potencia de salida en Wh del panel teórico de 1Kw. Corregida según horario de verano o invierno.
 * **power_solar:** Es irr multiplicado por la potencia de nuestra instalación.
 * **power_excess:** Energía producida por la instalación menos el consumo. Si es negativo estaremos usando batería o red.
@@ -325,8 +298,8 @@ st.plotly_chart (table_es, use_container_width=False)
 ########################################################################################################
 ########################     Instalation: NO BATTERIES + EXCESS SALE    ################################
 ########################################################################################################
-st.write('')
-st.write('')
+st.write ('')
+st.write ('')
 st.write ('### G) Instalación SIN baterías y CON venta de exceso ')
 
 ######### table  #########
@@ -346,22 +319,21 @@ st.plotly_chart (table_enb, use_container_width=False)
 
 months = monthly_sell_nobat.index
 
-fig = go.Figure(data=[
-    go.Bar(name='Ventas', x=months, y=monthly_sell_nobat, marker_color='#137d4f'),
-    go.Bar(name='Compras', x=months, y=monthly_buy_nobat, marker_color='#b8f0d8'),
-    go.Bar(name='Diferencia', x=months, y=list_net_nobat, marker_color='red')]
-    )
-fig.update_layout(barmode='group',
-                  title='Venta y compra de energía por meses en EUROS, instación SIN baterías.',
-                  yaxis = dict (title='Euros'),
-                  xaxis = dict (title='Mes del año')
-                  )
-st.write(fig)
+fig = go.Figure (data=[
+    go.Bar (name='Ventas', x=months, y=monthly_sell_nobat, marker_color='#137d4f'),
+    go.Bar (name='Compras', x=months, y=monthly_buy_nobat, marker_color='#b8f0d8'),
+    go.Bar (name='Diferencia', x=months, y=list_net_nobat, marker_color='red')]
+)
+fig.update_layout (barmode='group',
+                   title='Venta y compra de energía por meses en EUROS, instación SIN baterías.',
+                   yaxis=dict (title='Euros'),
+                   xaxis=dict (title='Mes del año')
+                   )
+st.write (fig)
 
-st.write("Los valores en rojo significan que la compensación de la compañía no llega a cubrir tu gasto.  \n Por tanto se debe pagar la banda roja: " + str (round (net_sell_buy_nobat, 2)) + ' €')
-
-
-
+st.write (
+    "Los valores en rojo significan que la compensación de la compañía no llega a cubrir tu gasto.  \n Por tanto se debe pagar la banda roja: " + str (
+        round (net_sell_buy_nobat, 2)) + ' €')
 
 ########################################################################################################
 ########################     Instalation: WITH BATTERIES AND NO EXCESS SALE    #########################
@@ -379,8 +351,6 @@ table_eb = ff.create_table (table_eur_bat, colorscale=colorscale2)
 table_eb.layout.width = tables_width
 font_resize (table_eb)
 st.plotly_chart (table_eb, use_container_width=False)
-
-
 
 ########################################################################################################
 ########################     Instalation: WITH BATTERIES + EXCESS SALE    ##############################
@@ -403,26 +373,22 @@ font_resize (table_ebs)
 st.plotly_chart (table_ebs, use_container_width=False)
 
 st.write (' ** la venta de energía se produce al ' + str (percent_buy * 100) + '% del precio de compra en cada tramo. ')
-st.write('')
+st.write ('')
 
 ######### graph  #########
 
-fig = go.Figure(data=[
-    go.Bar(name='Ventas teóricas', x=months, y=monthly_sell_bat, marker_color='#137d4f'),
-    go.Bar(name='Compras', x=months, y=monthly_buy_bat, marker_color='#b8f0d8'),
-    go.Bar(name='Diferencia', x=months, y=list_net_bat, marker_color='red')]
-    )
-fig.update_layout(barmode='group',
-                  title='Venta y compra de energía por meses en EUROS, instación CON baterías.',
-                  yaxis = dict (title='Euros'),
-                  xaxis = dict (title='Mes del año')
-                  )
-st.write(fig)
+fig = go.Figure (data=[
+    go.Bar (name='Ventas teóricas', x=months, y=monthly_sell_bat, marker_color='#137d4f'),
+    go.Bar (name='Compras', x=months, y=monthly_buy_bat, marker_color='#b8f0d8'),
+    go.Bar (name='Diferencia', x=months, y=list_net_bat, marker_color='red')]
+)
+fig.update_layout (barmode='group',
+                   title='Venta y compra de energía por meses en EUROS, instación CON baterías.',
+                   yaxis=dict (title='Euros'),
+                   xaxis=dict (title='Mes del año')
+                   )
+st.write (fig)
 
-st.write("La compensación mensual de la compañía hace que si inyectas a red más de lo que has consumido ese mes.  \n la diferencia sea cero y no te abonan nada."
-         "  \n Si aparecen valores en rojo, son los que tienes que abonar a la compañía.")
-
-
-
-
-
+st.write (
+    "La compensación mensual de la compañía hace que si inyectas a red más de lo que has consumido ese mes.  \n la diferencia sea cero y no te abonan nada."
+    "  \n Si aparecen valores en rojo, son los que tienes que abonar a la compañía.")
