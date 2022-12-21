@@ -1,27 +1,10 @@
 
-* video with 12 streamlit examples: https://www.youtube.com/watch?v=JwSS70SZdyM
-
-* para cambiar colores y que se guarde en este o en todos los proyectos:  https://www.youtube.com/watch?v=rOBQBUTE3_w   Hay que crear la carpeta .streamlit, y el archivo config.toml
-dentro con el código para los colores.
-* para cambiar colores segun valores:  https://www.youtube.com/watch?v=G9U4Uixssf0&t=288s en 5:30
+# gcloud builds submit --tag gcr.io/<PROJECT_ID>/<SOME_PROJECT_NAME>   some_project_name in lower cases, other way error ¡¡?¿?¿
+gcloud builds submit --tag gcr.io/energy-analyzer-372212/energyanalyzer  --project=energy-analyzer-372212
 
 
 
+# this can be done from the cli or via web in https://console.cloud.google.com/
+# check https://medium.com/@faizififita1/how-to-deploy-your-streamlit-web-app-to-google-cloud-run-ba776487c5fe
 
-para obtener la salida pv de una instalacion de 1 kw
-https://globalsolaratlas.info/detail?c=41.304121,21.643646,5&s=40.279526,-3.284912&m=site&pv=small,180,35,1
-
-
-
-
-
-
-
-
-MEJORAS
-
-meter resto de provincias
-
-deployment
-
-# meter el resto de compañias
+gcloud run deploy --image gcr.io/energy-analyzer-372212/EnergyAnalyzer --platform managed  --project=energy-analyzer-372212 --allow-unauthenticated

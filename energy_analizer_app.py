@@ -9,26 +9,31 @@ import unidecode
 import plotly.figure_factory as ff
 import plotly.express as px
 import plotly.graph_objects as go
-
 import clean_comercializadora_regulada
-from clean_comercializadora_regulada import CleanCR
 
-from datetime import datetime, timedelta
 
+# development function to get info from a dataframe, as streamlit doesnt show it
+def show_df_info (df):
+    import io
+    buffer = io.StringIO ()
+    df.info (buf=buffer)
+    s = buffer.getvalue ()
+    st.text (s)
 #########################################################################################################
 ########################################## Page Title and wide settings #################################
 #########################################################################################################
+
 st.set_page_config (page_title='Analizador para instalacion solar', layout="wide")
 image = Image.open ('bombillo.jpg')
 st.write ("""
     # Analizador de consumo energético
-    Esta aplicación analiza en detalle el consumo energético de tu instalación para ayudarte en tus decisiones a la hora de poner un sistema de energía solar!
+    Esta aplicación analiza en detalle el consumo energético de tu instalación para ayudarte en tus decisiones a la hora de poner un sistema de energía solar!  
+    Versión 1.0.beta  
+    Comentarios a: dvegamar@gmail.com
     """)
 st.image (image, use_column_width=True)
 
 with st.sidebar:
-    st.sidebar.markdown ('## Versión 1.0.beta ')
-    st.sidebar.markdown ('#### Comentarios a: dvegamar@gmail.com ')
     st.sidebar.markdown ("""___""")
 
 # hide menu and footer from streamlit
@@ -41,7 +46,7 @@ hide_menu_style = """
 st.markdown (hide_menu_style, unsafe_allow_html=True)
 
 #########################################################################################################
-#################################  User inputs (province other parameters) ##############################
+#################################  User inputs on the right sidebar  ####################################
 #########################################################################################################
 # province selector
 st.sidebar.markdown ('### Localización de la instalación ')
@@ -62,72 +67,80 @@ province = province.lower ().replace (" ", "")  # remove capitals and spaces
 irradiation_csv_toread = province + '_total_pv_power_output_wh.csv'
 
 # installation parameters and other useful information
+
 st.sidebar.markdown ('### Parámetros de instalación ')
 installed_power = st.sidebar.slider ('Potencia nominal de los paneles en Kw', min_value=0.3, max_value=20.0,
                              step=0.1, value=5.0)
 battery_cap = st.sidebar.slider ('Capacidad de tus baterías en Kwh',
                              min_value=1.0, max_value=20.0, step=0.1, value=5.0)
+
+
 st.sidebar.markdown ('### Parámetros opcionales ')
 increase_demand = st.sidebar.slider (
                             '¿Cuánto piensas incrementar tu consumo normal? 1 lo dejas igual, 1.2 aumenta un 20%...',
                              min_value=1.0, max_value=2.0, step=0.01, value=1.0)
+free_prize = st.sidebar.slider (
+                            'Precio medio de la energía que compras en el mercado libre €/kwh',
+                             min_value=0.01, max_value=1.0, step=0.01, value=0.20)
 percent_buy = st.sidebar.slider ('Porcentaje sobre el precio de venta de la compañía al que te compran la energía.',
                              min_value=5.0,
                              max_value=100.0, step=1.0, value=20.0) / 100
 
+
+
+#########################################################################################################
+#################################  User selection generic or customized #################################
+#########################################################################################################
+st.write ('### Elige un caso de estudio ')
+st.markdown (""" 
+* **Genérico:** Ejemplo de una casa de 3 habitantes y precio de energía regulado.
+* **Genérico libre:** Ejemplo de una casa de 3 habitantes y precio de energía libre  -  selecciona el precio en la columna izquierda.
+* **Personalizado:** tengo mi histórico en archivos xls o csv con mi consumo horario.
+""")
+study_type = st.radio('Selecciona una opción',('Genérico',
+                                               'Genérico libre',
+                                               'Personalizado'))
+
 #########################################################################################################
 #################################  User inputs (xls files) ##############################################
 #########################################################################################################
-st.write ('### A) Sube los ficheros ')
-st.write ("""
-    Necesito que subas los archivos xls que te proporciona tu compañia con los detalles mensuales de consumo. Versión Beta, sólo ficheros de Comercializadora Regulada.
-    ***
-    """)
 
-# upload files
-uploaded_files = st.file_uploader ('Selecciona los ficheros xls', type=["xls", "xlsx"], accept_multiple_files=True)
-if len (uploaded_files) != 0:
-    filenames = []
-    for file in uploaded_files:
-        filenames.append (file.name)
-    st.write ('Has subido un total de ' + str (len (filenames)) + ' archivos: \n')
+if study_type == 'Personalizado':
+    st.write ('### A) Sube los ficheros ')
+    st.write ("""
+        Necesito que subas los archivos xls que te proporciona tu compañia con los detalles mensuales de consumo. Versión Beta, sólo ficheros de Comercializadora Regulada.
+        ***
+        """)
+    uploaded_files = st.file_uploader ('Selecciona los ficheros xls', type=["xls", "xlsx"], accept_multiple_files=True)
+
+    if len (uploaded_files) != 0:
+        filenames = []
+        for file in uploaded_files:
+            filenames.append (file.name)
+        st.write ('Has subido un total de ' + str (len (filenames)) + ' archivos: \n')
+
+        df_clean = clean_comercializadora_regulada.CleanCR (uploaded_files)
+        # show_df_info (df_clean)  # for developing control
+        st.write ('Tabla de consumos agregada, estos son los datos que has subido.')
+        df_clean = df_clean.sort_values (by='Fecha con hora')
+        st.write (df_clean)
+        # with pd.ExcelWriter (os.path.join ('datos', 'merged_and_clean.xls')) as writer:
+            # df_clean.to_excel (writer)
+
+    else:
+        st.stop ()
+
 else:
-    st.stop ()
+    # if the user is not uploading files, then we use an internal example stores in merged_and_clean.xls
+    df_clean = pd.read_excel (os.path.join ('datos', 'merged_and_clean.xls'))
 
-
-##########################################
-# Clean xls and merge files
-##########################################
-
-# development function to get info from a dataframe, as streamlit doesnt show it
-def show_df_info (df):
-    import io
-    buffer = io.StringIO ()
-    df.info (buf=buffer)
-    s = buffer.getvalue ()
-    st.text (s)
-
-
-st.write ('### B) Procesa los ficheros subidos ')
-process = st.checkbox ('Procesar')
-if process:
-
-    df_clean = clean_comercializadora_regulada.CleanCR (uploaded_files)
-    # show_df_info (df_clean)  # for developing control
-    st.write ('Tabla de consumos agregada, estos son los datos que has subido.')
-    df_clean = df_clean.sort_values (by='Fecha con hora')
-    st.write (df_clean)
-    # with pd.ExcelWriter (os.path.join ('datos', 'merged_and_clean.xls')) as writer:
-    # df_clean.to_excel (writer)
-else:
-    st.stop ()
 
 ##########################################
 # Solar power dataframe
 ##########################################
-# let´s show a table with the solar power
+# let´s show a table with the solar power by province
 df_irr = pd.read_csv (os.path.join ('solar_power', irradiation_csv_toread))
-st.write ('### C) Tabla de potencia solar ')
+st.write ('### Tabla de potencia solar ')
 st.write ('Potencia de salida en Wh de panel teórico de 1 Kw a 34º de inclinación para la provincia elegida.')
 st.write ('Valores de https://globalsolaratlas.info.')
 st.write ('Estos valores no tienen corrección horaria CET, los usando en cáculos sí están corregidos')
@@ -153,6 +166,9 @@ def read_irr (hora, mes):
 df_clean ['irr'] = df_clean.apply (lambda x: read_irr (x ["Hora Desde"], x ["Mes"]), axis=1)
 
 # ADDING NEW COLUMNS TO DF_CLEAN FOR FURTHER CALCULATIONS
+if study_type ==  'Genérico libre':
+    df_clean ['Precio horario de energía (€/kWh)'] = free_prize
+
 df_clean ['Consumo (kWh)'] = df_clean ['Consumo (kWh)'] * increase_demand
 df_clean ['power_solar'] = df_clean ['irr'] * installed_power / 1000
 df_clean ['power_excess'] = df_clean ['power_solar'] - df_clean ['Consumo (kWh)']
@@ -216,7 +232,7 @@ list_net_bat = [0 if x <= 0 else x for x in list_net_bat]
 net_sell_buy_bat = sum (list_net_bat)
 
 # show_df_info (df_clean)
-st.write ('### D) Tabla con el cálculo de valores ')
+st.write ('### Tabla con el cálculo de valores ')
 st.markdown ("""
 Tabla de valores utilizados para la analítica. 
 * **irr:** Potencia de salida en Wh del panel teórico de 1Kw. Corregida según horario de verano o invierno.
@@ -238,7 +254,7 @@ st.write (df_clean)
 ########################################  Graphs plotting  ##############################################
 #########################################################################################################
 
-st.write ('### E) Gráficos de energía ')
+st.write ('### Gráficos de energía ')
 
 fig = px.line (df_clean, x='Fecha con hora', y='power_solar', title="Energía entregada por los paneles en Kwh")
 st.plotly_chart (fig, use_container_width=True)
@@ -254,7 +270,7 @@ st.plotly_chart (fig, use_container_width=True)
 ########################################## Tables with general results ##################################
 #########################################################################################################
 
-st.write ('### F) Resumen de valores generales de la intalación')
+st.write ('### Resumen de valores generales de la intalación')
 
 ######## ---- for all tables ---- ########
 
@@ -300,7 +316,7 @@ st.plotly_chart (table_es, use_container_width=False)
 ########################################################################################################
 st.write ('')
 st.write ('')
-st.write ('### G) Instalación SIN baterías y CON venta de exceso ')
+st.write ('### Instalación SIN baterías y CON venta de exceso ')
 
 ######### table  #########
 
@@ -340,7 +356,7 @@ st.write (
 ########################################################################################################
 st.write ('')
 st.write ('')
-st.write ('### H) Instalación CON baterías y SIN venta de exceso ')
+st.write ('### Instalación CON baterías y SIN venta de exceso ')
 
 ######### table  #########
 
@@ -352,12 +368,27 @@ table_eb.layout.width = tables_width
 font_resize (table_eb)
 st.plotly_chart (table_eb, use_container_width=False)
 
+######### graph  #########
+
+fig = go.Figure (data=[
+    go.Bar (name='Compras', x=months, y=monthly_buy_bat, marker_color='#b8f0d8')])
+
+fig.update_layout (title='Compra de energía por meses en EUROS, instación CON baterías y SIN venta de exceso.',
+                   yaxis=dict (title='Euros'),
+                   xaxis=dict (title='Mes del año')
+                   )
+st.write (fig)
+
+st.write (
+    "Los valores en rojo significan que la compensación de la compañía no llega a cubrir tu gasto.  \n Por tanto se debe pagar la banda roja: " + str (
+        round (net_sell_buy_nobat, 2)) + ' €')
+
 ########################################################################################################
 ########################     Instalation: WITH BATTERIES + EXCESS SALE    ##############################
 ########################################################################################################
 st.write ('')
 st.write ('')
-st.write ('### I) Instalación CON baterías y CON venta de exceso ')
+st.write ('### Instalación CON baterías y CON venta de exceso ')
 
 ######### table  #########
 
@@ -392,3 +423,5 @@ st.write (fig)
 st.write (
     "La compensación mensual de la compañía hace que si inyectas a red más de lo que has consumido ese mes.  \n la diferencia sea cero y no te abonan nada."
     "  \n Si aparecen valores en rojo, son los que tienes que abonar a la compañía.")
+
+
