@@ -33,9 +33,6 @@ st.write ("""
     """)
 st.image (image, use_column_width=True)
 
-with st.sidebar:
-    st.sidebar.markdown ("""___""")
-
 # hide menu and footer from streamlit
 hide_menu_style = """
     <style>
@@ -106,12 +103,13 @@ study_type = st.radio('Selecciona una opción',('Genérico',
 #########################################################################################################
 
 if study_type == 'Personalizado':
-    st.write ('### A) Sube los ficheros ')
-    st.write ("""
-        Necesito que subas los archivos xls que te proporciona tu compañia con los detalles mensuales de consumo. Versión Beta, sólo ficheros de Comercializadora Regulada.
-        ***
+    st.write ('### Sube los ficheros ')
+    st.markdown ("""
+        Necesito que subas los archivos xls que te proporciona tu compañia con los detalles mensuales de consumo.  
+        Menú izquierda parte inferior.    
+        Versión Beta, sólo ficheros de **Comercializadora Regulada**.
         """)
-    uploaded_files = st.file_uploader ('Selecciona los ficheros xls', type=["xls", "xlsx"], accept_multiple_files=True)
+    uploaded_files = st.sidebar.file_uploader ('Selecciona los ficheros xls', type=["xls", "xlsx"], accept_multiple_files=True)
 
     if len (uploaded_files) != 0:
         filenames = []
