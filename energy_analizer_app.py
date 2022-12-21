@@ -106,10 +106,9 @@ if study_type == 'Personalizado':
     st.write ('### Sube los ficheros ')
     st.markdown ("""
         Necesito que subas los archivos xls que te proporciona tu compañia con los detalles mensuales de consumo.  
-        Menú izquierda parte inferior.    
         Versión Beta, sólo ficheros de **Comercializadora Regulada**.
         """)
-    uploaded_files = st.sidebar.file_uploader ('Selecciona los ficheros xls', type=["xls", "xlsx"], accept_multiple_files=True)
+    uploaded_files = st.file_uploader ('Selecciona los ficheros xls', type=["xls", "xlsx"], accept_multiple_files=True)
 
     if len (uploaded_files) != 0:
         filenames = []
