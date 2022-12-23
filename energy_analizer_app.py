@@ -9,7 +9,7 @@ import unidecode
 import plotly.figure_factory as ff
 import plotly.express as px
 import plotly.graph_objects as go
-import clean_comercializadora_regulada
+import clean_comercializadora_regulada, clean_sigloxxi
 
 
 # development function to get info from a dataframe, as streamlit doesnt show it
@@ -99,7 +99,7 @@ study_type = st.radio('Selecciona una opción',('Genérico',
                                                'Personalizado'))
 
 #########################################################################################################
-#################################  User inputs (xls files) ##############################################
+#################################  User selects to upload or work with examples #########################
 #########################################################################################################
 
 if study_type == 'Personalizado':
@@ -108,24 +108,46 @@ if study_type == 'Personalizado':
         Necesito que subas los archivos xls que te proporciona tu compañia con los detalles mensuales de consumo.  
         Versión Beta, sólo ficheros de **Comercializadora Regulada**.
         """)
-    uploaded_files = st.file_uploader ('Selecciona los ficheros xls', type=["xls", "xlsx"], accept_multiple_files=True)
 
-    if len (uploaded_files) != 0:
-        filenames = []
-        for file in uploaded_files:
-            filenames.append (file.name)
-        st.write ('Has subido un total de ' + str (len (filenames)) + ' archivos: \n')
+    company = st.radio ('Selecciona una compañia', ('Ninguna',
+                                                    'Comercializadora regulada',
+                                                    'Energía XXI'
+                                                     ))
 
-        df_clean = clean_comercializadora_regulada.CleanCR (uploaded_files)
-        # show_df_info (df_clean)  # for developing control
-        st.write ('Tabla de consumos agregada, estos son los datos que has subido.')
-        df_clean = df_clean.sort_values (by='Fecha con hora')
-        st.write (df_clean)
-        # with pd.ExcelWriter (os.path.join ('datos', 'merged_and_clean.xls')) as writer:
-            # df_clean.to_excel (writer)
 
-    else:
+
+
+    # COMPANY
+
+    if company == 'Ninguna':
         st.stop ()
+
+    elif company == 'Comercializadora regulada':
+        uploaded_files = st.file_uploader ('Selecciona los ficheros xls', type=["xls", "xlsx"], accept_multiple_files=True)
+        if len (uploaded_files) != 0:
+            df_clean = clean_comercializadora_regulada.CleanCR (uploaded_files)
+            st.write ('Tabla de consumos agregada, estos son los datos que has subido.')
+            df_clean = df_clean.sort_values (by='Fecha con hora')
+            st.write (df_clean)
+            # with pd.ExcelWriter (os.path.join ('datos', 'merged_and_clean.xls')) as writer:
+                # df_clean.to_excel (writer)
+        else:
+            st.stop ()
+
+    # COMPANY
+    elif company == 'Energía XXI':
+        uploaded_files = st.file_uploader ('Selecciona los ficheros xls', type=["csv"],
+                                           accept_multiple_files=True)
+        if len (uploaded_files) != 0:
+            df_clean = clean_sigloxxi.CleanS21 (uploaded_files)
+            st.write ('Tabla de consumos agregada, estos son los datos que has subido.')
+            df_clean = df_clean.sort_values (by='Fecha con hora')
+            st.write (df_clean)
+            # with pd.ExcelWriter (os.path.join ('datos', 'merged_and_clean.xls')) as writer:
+                # df_clean.to_excel (writer)
+        else:
+            st.stop ()
+
 
 else:
     # if the user is not uploading files, then we use an internal example stores in merged_and_clean.xls
