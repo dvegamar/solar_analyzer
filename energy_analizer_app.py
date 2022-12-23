@@ -28,7 +28,7 @@ image = Image.open ('bombillo.jpg')
 st.write ("""
     # Analizador de consumo energético
     Esta aplicación analiza en detalle el consumo energético de tu instalación para ayudarte en tus decisiones a la hora de poner un sistema de energía solar!  
-    Versión 1.0.beta  
+    Versión 1.2.beta  
     Comentarios a: dvegamar@gmail.com
     """)
 st.image (image, use_column_width=True)
@@ -105,8 +105,9 @@ study_type = st.radio('Selecciona una opción',('Genérico',
 if study_type == 'Personalizado':
     st.write ('### Sube los ficheros ')
     st.markdown ("""
-        Necesito que subas los archivos xls que te proporciona tu compañia con los detalles mensuales de consumo.  
-        Versión Beta, sólo ficheros de **Comercializadora Regulada**.
+        Necesito que subas los archivos xls o csv que te proporciona tu compañia con los detalles mensuales de consumo.  
+        Estamos en Beta, sólo ficheros de **Comercializadora Regulada** y **Energía XXI**.  
+        Ponte en contacto conmigo si tienes otra compañía y quieres que aparezca aquí.
         """)
 
     company = st.radio ('Selecciona una compañia', ('Ninguna',
