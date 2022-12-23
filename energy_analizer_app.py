@@ -161,7 +161,7 @@ else:
 # let´s show a table with the solar power by province
 df_irr = pd.read_csv (os.path.join ('solar_power', irradiation_csv_toread))
 st.write ('### Tabla de potencia solar ')
-st.write ('Potencia de salida en Wh de panel teórico de 1 Kw a 34º de inclinación para la provincia elegida.')
+st.write ('Potencia de salida en Wh de panel teórico de 1 Kwp a 34º de inclinación para la provincia elegida.')
 st.write ('Valores de https://globalsolaratlas.info.')
 st.write ('Estos valores no tienen corrección horaria CET, los usando en cáculos sí están corregidos')
 st.write (df_irr)
@@ -255,7 +255,7 @@ net_sell_buy_bat = sum (list_net_bat)
 st.write ('### Tabla con el cálculo de valores ')
 st.markdown ("""
 Tabla de valores utilizados para la analítica. 
-* **irr:** Potencia de salida en Wh del panel teórico de 1Kw. Corregida según horario de verano o invierno.
+* **irr:** Potencia de salida en Wh del panel teórico de 1Kwp. Corregida según horario de verano o invierno.
 * **power_solar:** Es irr multiplicado por la potencia de nuestra instalación.
 * **power_excess:** Energía producida por la instalación menos el consumo. Si es negativo estaremos usando batería o red.
 * **venta €:** Dinero ganado por la instalación al vender a la red si no hay baterías.
