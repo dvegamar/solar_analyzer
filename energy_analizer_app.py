@@ -26,9 +26,15 @@ def show_df_info (df):
 st.set_page_config (page_title='Analizador para instalacion solar', layout="wide")
 image = Image.open ('bombillo.jpg')
 st.write ("""
-    # Analizador de consumo energético
-    Esta aplicación analiza en detalle el consumo energético de tu instalación para ayudarte en tus decisiones a la hora de poner un sistema de energía solar!  
+    # SOLAR MONKEY  
+    ## Aplicación independiente para dimensionar tu instalación solar
     Versión 1.2.beta  
+    Esta es una aplicación desarrollada a nivel personal, ni se venden ni se prestan servicios.  
+    La aplicación analiza diferentes escenarios energéticos y en base a tu consumo histórico presenta opciones para una instalación solar.  
+    Se declina específicamente cualquier responsabilidad legal o económica de las decisiones que tomes para realizar tu instalación.      
+    La aplicación analiza tu histórico de consumo, si subes los ficheros, y en ningún momento almacena estos datos u
+    otro tipo de datos personales que pudieran contener los ficheros. Son limpiados de forma automática y una vez cerrada la aplicación se eliminan de la memoria.  
+    No puedes crear un perfil de usuario ni almacenar datos.  
     Comentarios a: dvegamar@gmail.com
     """)
 st.image (image, use_column_width=True)
@@ -49,10 +55,10 @@ st.markdown (hide_menu_style, unsafe_allow_html=True)
 st.sidebar.markdown ('### Localización de la instalación ')
 province_list = ['Albacete', 'Álava', 'Alicante', 'Almería', 'Asturias', 'Ávila', 'Badajoz', 'Barcelona', 'Burgos',
                  'Cantabria',
-                 'Castellón', 'Ceuta', 'Ciudad Real', 'Cuenca', 'Cáceres', 'Cádiz', 'Córdoba', 'Girona',
+                 'Castellón', 'Ciudad Real', 'Cuenca', 'Cáceres', 'Cádiz', 'Córdoba', 'Girona',
                  'Gran Canaria', 'Granada', 'Guadalajara', 'Guipuzcoa', 'Huelva', 'Huesca', 'Jaén', 'La Coruña',
                  'La Rioja', 'León',
-                 'Lleida', 'Lugo', 'Madrid', 'Mallorca', 'Melilla', 'Murcia', 'Málaga', 'Navarra', 'Orense', 'Palencia',
+                 'Lleida', 'Lugo', 'Madrid', 'Mallorca', 'Murcia', 'Málaga', 'Navarra', 'Orense', 'Palencia',
                  'Pontevedra',
                  'Salamanca', 'Segovia', 'Sevilla', 'Soria', 'Tarragona', 'Tenerife', 'Teruel', 'Toledo', 'Valencia',
                  'Valladolid',
@@ -66,10 +72,10 @@ irradiation_csv_toread = province + '_total_pv_power_output_wh.csv'
 # installation parameters and other useful information
 
 st.sidebar.markdown ('### Parámetros de instalación ')
-installed_power = st.sidebar.slider ('Potencia nominal de los paneles en Kw', min_value=0.3, max_value=20.0,
+installed_power = st.sidebar.slider ('Potencia nominal de los paneles en Kw', min_value=0.0, max_value=20.0,
                              step=0.1, value=5.0)
 battery_cap = st.sidebar.slider ('Capacidad de tus baterías en Kwh',
-                             min_value=1.0, max_value=20.0, step=0.1, value=5.0)
+                             min_value=0.0, max_value=20.0, step=0.1, value=5.0)
 
 
 st.sidebar.markdown ('### Parámetros opcionales ')
@@ -126,7 +132,11 @@ if study_type == 'Personalizado':
     elif company == 'Comercializadora regulada':
         uploaded_files = st.file_uploader ('Selecciona los ficheros xls', type=["xls", "xlsx"], accept_multiple_files=True)
         if len (uploaded_files) != 0:
-            df_clean = clean_comercializadora_regulada.CleanCR (uploaded_files)
+            try:
+                df_clean = clean_comercializadora_regulada.CleanCR (uploaded_files)
+            except Exception as exc:
+                st.write('Los ficheros no parecen estar en orden. Ponte en contacto con el administrador')
+                st.stop ()
             st.write ('Tabla de consumos agregada, estos son los datos que has subido.')
             df_clean = df_clean.sort_values (by='Fecha con hora')
             st.write (df_clean)
@@ -381,7 +391,8 @@ st.write ('### Instalación CON baterías y SIN venta de exceso ')
 ######### table  #########
 
 table_eur_bat = [['CON baterías y SIN venta del exceso', 'Valor'],
-                 ['Por compra cuando las baterias están agotadas:', str (round (sum (monthly_buy_bat), 2)) + ' €']]
+                 ['Por compra cuando las baterias están agotadas:', str (round (sum (monthly_buy_bat), 2)) + ' €'],
+                 ['Diferencia SIN batería y venta menos CON batería:', str (round((round (net_sell_buy_nobat, 2)- round (sum (monthly_buy_bat), 2) ),2))   ]]
 
 table_eb = ff.create_table (table_eur_bat, colorscale=colorscale2)
 table_eb.layout.width = tables_width
