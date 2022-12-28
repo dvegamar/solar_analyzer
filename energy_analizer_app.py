@@ -35,7 +35,9 @@ st.write ("""
     La aplicación analiza tu histórico de consumo, si subes los ficheros, y en ningún momento almacena estos datos u
     otro tipo de datos personales que pudieran contener los ficheros. Son limpiados de forma automática y una vez cerrada la aplicación se eliminan de la memoria.  
     No puedes crear un perfil de usuario ni almacenar datos.  
-    Comentarios a: dvegamar@gmail.com
+    Comentarios a: dvegamar@gmail.com  
+      
+    Video tutorial para manejar la aplicacón:  https://www.youtube.com/watch?v=v-8suy0C5lM
     """)
 st.image (image, use_column_width=True)
 
